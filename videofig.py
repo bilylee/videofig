@@ -118,8 +118,9 @@ from __future__ import print_function
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Slider
+import matplotlib.gridspec as gridspec
 
-def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None, *args):
+def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None, grid_specs=None, *args):
   """Figure with horizontal scrollbar and play capabilities
   
   This script is mainly inspired by the elegant work of João Filipe Henriques
@@ -145,17 +146,34 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   # Initialize figure
   fig_handle = plt.figure()
 
-  # main drawing axes for video display
-  axes_handle = plt.axes([0, 0.03, 1, 0.97])
-  axes_handle.set_axis_off()
+  # We use GridSpec to support embedding multiple plots in the main drawing pane.
+  # A nested grid demo can be found at https://matplotlib.org/users/plotting/examples/demo_gridspec06.py
+  # Construct outer grid, which contains the main drawing pane and slider ball
+  outer_grid = gridspec.GridSpec(2, 1,
+                                 left=0, bottom=0, right=1, top=1,
+                                 height_ratios=[97, 3], wspace=0.0, hspace=0.0)
+
+  # Construct inner grid in main drawing pane
+  if grid_specs is None:
+    grid_specs = {'nrows': 1, 'ncols': 1} # We will have only one axes by default
+
+  num_inner_plots = grid_specs['nrows'] * grid_specs['ncols']
+
+  inner_grid = gridspec.GridSpecFromSubplotSpec(subplot_spec=outer_grid[0], **grid_specs)
+  axes_handle = [plt.Subplot(fig_handle, inner_grid[i]) for i in range(num_inner_plots)]
+  for ax in axes_handle: fig_handle.add_subplot(ax)
+
+  if len(axes_handle) == 1:
+    axes_handle = axes_handle[0]
+    axes_handle.set_axis_off()
 
   # Build scrollbar
-  scroll_axes_handle = plt.axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
+  scroll_axes_handle = plt.Subplot(fig_handle, outer_grid[1])
+  scroll_axes_handle.set_facecolor('lightgoldenrodyellow')
+  fig_handle.add_subplot(scroll_axes_handle)
   scroll_handle = Slider(scroll_axes_handle, '', 0.0, num_frames - 1, valinit=0.0)
 
   def draw_new(_):
-    # Set to the right axes and call the custom redraw function
-    plt.sca(axes_handle)
     redraw_func(int(scroll_handle.val), axes_handle)
     fig_handle.canvas.draw_idle()
 
