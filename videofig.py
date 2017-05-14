@@ -150,7 +150,7 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   axes_handle.set_axis_off()
 
   # Build scrollbar
-  scroll_axes_handle = plt.axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
+  scroll_axes_handle = plt.axes([0, 0, 1, 0.03])
   scroll_handle = Slider(scroll_axes_handle, '', 0.0, num_frames - 1, valinit=0.0)
 
   def draw_new(_):
