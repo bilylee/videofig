@@ -11,6 +11,8 @@ Accidentally, I came across [the excellent script of João Filipe Henriques](htt
 
 ## Dependency
 This tool is specifically designed to be minimal, lightweight and readable such that anyone can easily modify it to suit different needs. The only dependency is `Matplotlib`. I have tested it in Python 2.7, but it should also work in Python 3.5.
+
+- matplotlib >= 2.0.0
  
 ## Basic Usage
 ```python
