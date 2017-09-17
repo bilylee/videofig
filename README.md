@@ -51,6 +51,7 @@ can add more shortcut keys (or empty for none).
 ### Example 1: Plot a dynamic sine wave
 ```python
   import numpy as np
+  from matplotlib import pyplot as plt
 
   def redraw_fn(f, axes):
     amp = float(f) / 3000
@@ -66,6 +67,7 @@ can add more shortcut keys (or empty for none).
   redraw_fn.initialized = False
 
   videofig(100, redraw_fn)
+  plt.show()
 ```
 
 ### Example 2: Show images in a custom directory
@@ -73,6 +75,7 @@ can add more shortcut keys (or empty for none).
   import os
   import glob
   from scipy.misc import imread
+  from matplotlib import pyplot as plt
 
   img_dir = 'YOUR-IMAGE-DIRECTORY'
   img_files = glob.glob(os.path.join(video_dir, '*.jpg'))
@@ -88,6 +91,7 @@ can add more shortcut keys (or empty for none).
   redraw_fn.initialized = False
 
   videofig(len(img_files), redraw_fn, play_fps=30)
+  plt.show()
 ```
 
 ### Example 3: Show images together with object bounding boxes
@@ -95,6 +99,7 @@ can add more shortcut keys (or empty for none).
   import os
   import glob
   from scipy.misc import imread
+  from matplotlib import pyplot as plt
   from matplotlib.pyplot import Rectangle
   
   video_dir = 'YOUR-VIDEO-DIRECTORY'
@@ -123,4 +128,34 @@ can add more shortcut keys (or empty for none).
   redraw_fn.initialized = False
 
   videofig(len(img_files), redraw_fn, play_fps=30)
+  plt.show()
+```
+
+### Example 4: Plot a dynamic sine wave with custom figure handle
+```python
+  import numpy as np
+  from matplotlib import pyplot as plt
+
+  def redraw_fn(f, axes):
+    amp = float(f) / 3000
+    f0 = 3
+    t = np.arange(0.0, 1.0, 0.001)
+    s = amp * np.sin(2 * np.pi * f0 * t)
+    if not redraw_fn.initialized:
+      redraw_fn.l, = axes.plot(t, s, lw=2, color='red')
+      redraw_fn.initialized = True
+    else:
+      redraw_fn.l.set_ydata(s)
+
+  redraw_fn.initialized = False
+  
+  # Use custom figure handle. 
+  fig_handle = plt.figure('Sine Wave with my figure')
+  # fig_handle = None will create a new figure handle by default
+  
+  # Call videofig with custom figure handle  
+  videofig(100, redraw_fn, fig_handle=fig_handle)
+
+  # Don't forget to show your plots.
+  plt.show()
 ```

@@ -39,6 +39,7 @@ can add more shortcut keys (or empty for none).
 Example 1: Plot a dynamic sine wave
 ---------
   import numpy as np
+  from matplotlib import pyplot as plt
 
   def redraw_fn(f, axes):
     amp = float(f) / 3000
@@ -54,12 +55,14 @@ Example 1: Plot a dynamic sine wave
   redraw_fn.initialized = False
 
   videofig(100, redraw_fn)
+  plt.show()
   
 Example 2: Show images in a custom directory
 ---------
   import os
   import glob
   from scipy.misc import imread
+  from matplotlib import pyplot as plt
 
   img_dir = 'YOUR-IMAGE-DIRECTORY'
   img_files = glob.glob(os.path.join(video_dir, '*.jpg'))
@@ -75,12 +78,14 @@ Example 2: Show images in a custom directory
   redraw_fn.initialized = False
 
   videofig(len(img_files), redraw_fn, play_fps=30)
+  plt.show()
 
 Example 3: Show images together with object bounding boxes
 ----------
   import os
   import glob
   from scipy.misc import imread
+  from matplotlib import pyplot as plt
   from matplotlib.pyplot import Rectangle
   
   video_dir = 'YOUR-VIDEO-DIRECTORY'
@@ -109,6 +114,7 @@ Example 3: Show images together with object bounding boxes
   redraw_fn.initialized = False
 
   videofig(len(img_files), redraw_fn, play_fps=30)
+  plt.show()
 """
 
 from __future__ import absolute_import
@@ -118,8 +124,9 @@ from __future__ import print_function
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Slider
+from matplotlib.figure import Figure
 
-def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None, *args):
+def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None, fig_handle=None, *args):
   """Figure with horizontal scrollbar and play capabilities
   
   This script is mainly inspired by the elegant work of João Filipe Henriques
@@ -131,6 +138,8 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   :param play_fps: an integer, number of frames per second, used to control the play speed
   :param big_scroll: an integer, big scroll number used when pressed page down or page up keys. 
   :param key_func: optional callable which signature key_func(key), used to provide custom key shortcuts.
+  :param fig_handle: optional object of type matplotlib.figure.Figure which contains all the plot elements. If None,
+                     create a new one by calling plt.figure()
   :param args: other optional arguments
   :return: None
   """
@@ -143,19 +152,22 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
     check_callback(key_func, 'key_func')
 
   # Initialize figure
-  fig_handle = plt.figure()
+  if fig_handle is None:
+    fig_handle = plt.figure()
+  else:
+    assert isinstance(fig_handle, Figure), 'fig_handle should be an instance of matplotlib.figure.Figure'
 
   # main drawing axes for video display
-  axes_handle = plt.axes([0, 0.03, 1, 0.97])
+  axes_handle = fig_handle.add_axes([0, 0.03, 1, 0.97])
   axes_handle.set_axis_off()
 
   # Build scrollbar
-  scroll_axes_handle = plt.axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
+  scroll_axes_handle = fig_handle.add_axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
   scroll_handle = Slider(scroll_axes_handle, '', 0.0, num_frames - 1, valinit=0.0)
 
   def draw_new(_):
     # Set to the right axes and call the custom redraw function
-    plt.sca(axes_handle)
+    fig_handle.sca(axes_handle)
     redraw_func(int(scroll_handle.val), axes_handle)
     fig_handle.canvas.draw_idle()
 
@@ -179,7 +191,7 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
       frame_idxs = range(int(scroll_handle.val), num_frames)
       play.anim = FuncAnimation(fig_handle, scroll, frame_idxs,
                                 interval=1000 * period, repeat=False)
-      plt.draw()
+      fig_handle.canvas.draw_idle()
     else:
       play.anim.event_source.stop()
 
@@ -219,11 +231,6 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   # Start playing
   play(1 / play_fps)
 
-  # plt.show() has to be put in the end of the function,
-  # otherwise, the program simply won't work, weird...
-  plt.show()
-
-
 def check_int_scalar(a, name):
   assert isinstance(a, int), '{} must be a int scalar, instead of {}'.format(name, type(name))
 
@@ -236,6 +243,7 @@ def check_callback(a, name):
 
 if __name__ == '__main__':
   import numpy as np
+  from matplotlib import pyplot as plt
 
   def redraw_fn(f, axes):
     amp = float(f) / 3000
@@ -250,4 +258,12 @@ if __name__ == '__main__':
 
   redraw_fn.initialized = False
 
-  videofig(100, redraw_fn)
+  # Use custom figure handle.
+  fig_handle = plt.figure('Sine Wave with my figure')
+  # fig_handle = None will create a new figure handle by default
+
+  # Call videofig with custom figure handle
+  videofig(100, redraw_fn, fig_handle=fig_handle)
+
+  # Don't forget to show your plots.
+  plt.show()
