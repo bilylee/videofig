@@ -158,8 +158,8 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
     assert isinstance(fig_handle, Figure), 'fig_handle should be an instance of matplotlib.figure.Figure'
 
   # main drawing axes for video display
-  axes_handle = fig_handle.add_axes([0, 0.03, 1, 0.97])
-  axes_handle.set_axis_off()
+  image_axes_handle = fig_handle.add_axes([0, 0.03, 1, 0.97])
+  image_axes_handle.set_axis_off()
 
   # Build scrollbar
   scroll_axes_handle = fig_handle.add_axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
@@ -167,8 +167,8 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
 
   def draw_new(_):
     # Set to the right axes and call the custom redraw function
-    fig_handle.sca(axes_handle)
-    redraw_func(int(scroll_handle.val), axes_handle)
+    fig_handle.sca(image_axes_handle)
+    redraw_func(int(scroll_handle.val), image_axes_handle)
     fig_handle.canvas.draw_idle()
 
   def scroll(new_f):
@@ -183,7 +183,7 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
       # move scroll bar to new position
       scroll_handle.set_val(new_f)
 
-    return axes_handle
+    return image_axes_handle
 
   def play(period):
     play.running ^= True  # Toggle state
@@ -226,7 +226,7 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   fig_handle.canvas.mpl_connect('key_press_event', key_press)
 
   # Draw initial frame
-  redraw_func(0, axes_handle)
+  redraw_func(0, image_axes_handle)
 
   # Start playing
   play(1 / play_fps)
