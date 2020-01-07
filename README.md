@@ -3,8 +3,8 @@ Lightweight image sequence visualization utility based on matplotlib
 
 ## Features
 - play matplotlib plots in real time (35 fps for 640x360 images) 
-- pause, next frame, previous frame, etc
-- drag the scroll bar for navigation
+- press `Enter` to toggle pause, :arrow_right: to next frame, :arrow_left: to previous frame, etc
+- pause then drag the scroll bar for navigation
 - draw multiple plots with grid specification
 - save plots in a directory
 - support windows, linux, osx
