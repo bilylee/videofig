@@ -271,6 +271,9 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
     # otherwise, the program simply won't work, weird...
     plt.show()
   else:
+    print('=> Saving plots to: {}...'.format(save_dir))
+    os.makedirs(save_dir, exist_ok=True)
+
     # Due to the issue of https://github.com/matplotlib/matplotlib/issues/7614
     # we need to save the first image twice. Otherwise, the first saved image will be distorted.
     for index in [0] + list(range(0, num_frames)):
@@ -281,9 +284,9 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
           print('Warning: remove "%matplotlib notebook", otherwise saved images will be distorted!')
         extent = axes_handle.get_window_extent().transformed(fig_handle.dpi_scale_trans.inverted())
       else:
-        extent = fig_handle.bbox
+        extent = None
       fig_handle.savefig(os.path.join(save_dir, '{:04d}.jpg'.format(index)), bbox_inches=extent)
-
+    print('=> Done')
 
 def check_int_scalar(a, name):
   assert isinstance(a, int), '{} must be a int scalar, instead of {}'.format(name, type(name))
