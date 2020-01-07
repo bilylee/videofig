@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2017 bily     Huazhong University of Science and Technology
+# Copyright © 2017-2020 bily     Huazhong University of Science and Technology
 #
 # Distributed under terms of the MIT license.
 
@@ -54,7 +54,7 @@ Example 1: Plot a dynamic sine wave
   redraw_fn.initialized = False
 
   videofig(100, redraw_fn)
-  
+
 Example 2: Show images in a custom directory
 ---------
   import os
@@ -82,7 +82,7 @@ Example 3: Show images together with object bounding boxes
   import glob
   from scipy.misc import imread
   from matplotlib.pyplot import Rectangle
-  
+
   video_dir = 'YOUR-VIDEO-DIRECTORY'
 
   img_files = glob.glob(os.path.join(video_dir, '*.jpg'))
@@ -115,22 +115,39 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
+
+import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.widgets import Slider
+import matplotlib.gridspec as gridspec
+import matplotlib.animation as animation
 
-def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None, *args):
+__all__ = ['videofig']
+
+
+def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
+             grid_specs=None, layout_specs=None, figname=None, save_dir=None, *args):
   """Figure with horizontal scrollbar and play capabilities
-  
+
   This script is mainly inspired by the elegant work of João Filipe Henriques
     https://www.mathworks.com/matlabcentral/fileexchange/29544-figure-to-play-and-analyze-videos-with-custom-plots-on-top?focused=5172704&tab=function
-    
+
   :param num_frames: an integer, number of frames in a sequence
   :param redraw_func: callable with signature redraw_func(f, axes)
-                      used to draw a new frame at position f using axes, which is a instance of Axes class in matplotlib 
+                      used to draw a new frame at position f using axes, which is a instance of Axes class in matplotlib
   :param play_fps: an integer, number of frames per second, used to control the play speed
-  :param big_scroll: an integer, big scroll number used when pressed page down or page up keys. 
+  :param big_scroll: an integer, big scroll number used when pressed page down or page up keys.
   :param key_func: optional callable which signature key_func(key), used to provide custom key shortcuts.
+  :param grid_specs: optional dictionary, used to specify the gridspec of the main drawing pane.
+                     For example, grid_specs = {'nrows': 2, 'ncols': 2} will create a gridspec with 2 rows and 2 cols.
+  :param layout_specs: optional list, used to specify the layout of the gridspec of the main drawing pane.
+                     For example, layout_specs = ['[:, 0]', '[:, 1]'] means:
+                        gs = ... Some code to create the main drawing pane gridspec ...
+                        ax1 = plt.subplot(gs[:, 0])
+                        ax2 = plt.subplot(gs[:, 1])
+  :param save_dir: a string, used to specify the directory to which figures will be saved.
   :param args: other optional arguments
   :return: None
   """
@@ -143,19 +160,49 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
     check_callback(key_func, 'key_func')
 
   # Initialize figure
-  fig_handle = plt.figure()
+  if not figname:
+    figname = 'VideoPlayer'
+  fig_handle = plt.figure(num=figname)
 
-  # main drawing axes for video display
-  axes_handle = plt.axes([0, 0.03, 1, 0.97])
-  axes_handle.set_axis_off()
+  # We do not want to show the slider when saving figures
+  slider_ratio = 3 if save_dir is None else 1e-3
+
+  # We use GridSpec to support embedding multiple plots in the main drawing pane.
+  # A nested grid demo can be found at https://matplotlib.org/users/plotting/examples/demo_gridspec06.py
+  # Construct outer grid, which contains the main drawing pane and slider ball
+  outer_grid = gridspec.GridSpec(2, 1,
+                                 left=0, bottom=0, right=1, top=1,
+                                 height_ratios=[97, slider_ratio], wspace=0.0, hspace=0.0)
+
+  # Construct inner grid in main drawing pane
+  if grid_specs is None:
+    grid_specs = {'nrows': 1, 'ncols': 1}  # We will have only one axes by default
+
+  inner_grid = gridspec.GridSpecFromSubplotSpec(subplot_spec=outer_grid[0], **grid_specs)
+  if layout_specs:
+    # eval() can't work properly in list comprehension which is inside a function.
+    # Refer to: http://bugs.python.org/issue5242
+    # Maybe I should find another way to implement layout_specs without using eval()...
+    axes_handle = []
+    for spec in layout_specs:
+      axes_handle.append(plt.Subplot(fig_handle, eval('inner_grid' + spec)))
+  else:
+    num_inner_plots = grid_specs['nrows'] * grid_specs['ncols']
+    axes_handle = [plt.Subplot(fig_handle, inner_grid[i]) for i in range(num_inner_plots)]
+
+  for ax in axes_handle: fig_handle.add_subplot(ax)
+
+  if len(axes_handle) == 1:
+    axes_handle = axes_handle[0]
+    axes_handle.set_axis_off()
 
   # Build scrollbar
-  scroll_axes_handle = plt.axes([0, 0, 1, 0.03], facecolor='lightgoldenrodyellow')
+  scroll_axes_handle = plt.Subplot(fig_handle, outer_grid[1])
+  scroll_axes_handle.set_facecolor('lightgoldenrodyellow')
+  fig_handle.add_subplot(scroll_axes_handle)
   scroll_handle = Slider(scroll_axes_handle, '', 0.0, num_frames - 1, valinit=0.0)
 
   def draw_new(_):
-    # Set to the right axes and call the custom redraw function
-    plt.sca(axes_handle)
     redraw_func(int(scroll_handle.val), axes_handle)
     fig_handle.canvas.draw_idle()
 
@@ -178,7 +225,7 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
     if play.running:
       frame_idxs = range(int(scroll_handle.val), num_frames)
       play.anim = FuncAnimation(fig_handle, scroll, frame_idxs,
-                                interval=1000 * period, repeat=False)
+                                interval=1000 * period, repeat=False, blit=False)
       plt.draw()
     else:
       play.anim.event_source.stop()
@@ -193,9 +240,9 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
       scroll(f - 1)
     elif key == 'right':
       scroll(f + 1)
-    elif key == 'pageup':
+    elif key in ['pageup', 'up']:
       scroll(f - big_scroll)
-    elif key == 'pagedown':
+    elif key in ['pagedown', 'down']:
       scroll(f + big_scroll)
     elif key == 'home':
       scroll(0)
@@ -213,15 +260,29 @@ def videofig(num_frames, redraw_func, play_fps=25, big_scroll=30, key_func=None,
   scroll_handle.on_changed(draw_new)
   fig_handle.canvas.mpl_connect('key_press_event', key_press)
 
-  # Draw initial frame
-  redraw_func(0, axes_handle)
+  if save_dir is None:
+    # Draw initial frame
+    redraw_func(0, axes_handle)
 
-  # Start playing
-  play(1 / play_fps)
+    # Start playing
+    play(1 / play_fps)
 
-  # plt.show() has to be put in the end of the function,
-  # otherwise, the program simply won't work, weird...
-  plt.show()
+    # plt.show() has to be put in the end of the function,
+    # otherwise, the program simply won't work, weird...
+    plt.show()
+  else:
+    # Due to the issue of https://github.com/matplotlib/matplotlib/issues/7614
+    # we need to save the first image twice. Otherwise, the first saved image will be distorted.
+    for index in [0] + list(range(0, num_frames)):
+      redraw_func(index, axes_handle)
+      fig_handle.canvas.draw_idle()
+      if not isinstance(axes_handle, list):
+        if matplotlib.get_backend() == 'nbAgg':
+          print('Warning: remove "%matplotlib notebook", otherwise saved images will be distorted!')
+        extent = axes_handle.get_window_extent().transformed(fig_handle.dpi_scale_trans.inverted())
+      else:
+        extent = fig_handle.bbox
+      fig_handle.savefig(os.path.join(save_dir, '{:04d}.jpg'.format(index)), bbox_inches=extent)
 
 
 def check_int_scalar(a, name):
@@ -235,19 +296,39 @@ def check_callback(a, name):
 
 
 if __name__ == '__main__':
-  import numpy as np
+  import argparse
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-i", "--imgdir", type=str, default=None, help="directory containing JPEG images")
+  args = parser.parse_args()
 
-  def redraw_fn(f, axes):
-    amp = float(f) / 3000
-    f0 = 3
-    t = np.arange(0.0, 1.0, 0.001)
-    s = amp * np.sin(2 * np.pi * f0 * t)
-    if not redraw_fn.initialized:
-      redraw_fn.l, = axes.plot(t, s, lw=2, color='red')
-      redraw_fn.initialized = True
-    else:
-      redraw_fn.l.set_ydata(s)
+  if args.imgdir:
+    import os
+    import glob
+    from scipy.misc import imread
+    img_files = sorted(glob.glob(os.path.join(args.imgdir, '*.jpg')))
+    def redraw_fn(f, axes):
+      img_file = img_files[f]
+      img = imread(img_file)
+      if not redraw_fn.initialized:
+        redraw_fn.im = axes.imshow(img, animated=True)
+        redraw_fn.initialized = True
+      else:
+        redraw_fn.im.set_array(img)
+    redraw_fn.initialized = False
+    videofig(len(img_files), redraw_fn, play_fps=30)
 
-  redraw_fn.initialized = False
+  else:
+    import numpy as np
+    def redraw_fn(f, axes):
+      amp = float(f) / 3000
+      f0 = 3
+      t = np.arange(0.0, 1.0, 0.001)
+      s = amp * np.sin(2 * np.pi * f0 * t)
+      if not redraw_fn.initialized:
+        redraw_fn.l, = axes.plot(t, s, lw=2, color='red')
+        redraw_fn.initialized = True
+      else:
+        redraw_fn.l.set_ydata(s)
 
-  videofig(100, redraw_fn)
+    redraw_fn.initialized = False
+    videofig(100, redraw_fn)
