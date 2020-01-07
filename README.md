@@ -1,6 +1,29 @@
 # videofig
 Lightweight image sequence visualization utility based on matplotlib
 
+## Features
+- play matplotlib plots in real time (35 fps for 640x360 images) 
+- pause, next frame, previous frame, etc
+- drag the scroll bar for navigation
+- draw multiple plots with grid specification
+- save plots in a directory
+- support windows, linux, osx
+
+## Examples
+### Example 1: Plot a dynamic sine wave
+![example1](./assets/example1_save.gif)
+
+### Example 2: Show images together with object bounding boxes
+![example2](./assets/example2_save.gif)
+
+### Example 3: Show multiple plots
+![example3](./assets/example3_save.gif)
+
+To generate these gifs, follow these steps:
+1. change `SAVE_PLOTS` to `True` in respective example scripts
+2. `python example1.py` 
+3. `ffmpeg -ss 0 -i example1_save/%04d.jpg -vf "setpts=1.0*PTS,fps=25,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 example1_save.gif`
+
 ## Introduction
 Python is an elegant programming language with rich add-on libraries to meet various needs. For scientific computation, it has `numpy`; for plotting, it has `matplotlib`. Personally, I use Python for video analysis and it works like a charm except for one thing: *visualize image sequences for detailed inspection*. 
  
@@ -47,80 +70,4 @@ videofig(NUM_FRAMES, REDRAW_FUNC, FPS, BIG_SCROLL, KEY_FUNC)
 Also calls KEY_FUNC(KEY) with any keys that weren't processed, so you
 can add more shortcut keys (or empty for none).
 
-## Examples
-### Example 1: Plot a dynamic sine wave
-```python
-  import numpy as np
 
-  def redraw_fn(f, axes):
-    amp = float(f) / 3000
-    f0 = 3
-    t = np.arange(0.0, 1.0, 0.001)
-    s = amp * np.sin(2 * np.pi * f0 * t)
-    if not redraw_fn.initialized:
-      redraw_fn.l, = axes.plot(t, s, lw=2, color='red')
-      redraw_fn.initialized = True
-    else:
-      redraw_fn.l.set_ydata(s)
-
-  redraw_fn.initialized = False
-
-  videofig(100, redraw_fn)
-```
-
-### Example 2: Show images in a custom directory
-```python
-  import os
-  import glob
-  from scipy.misc import imread
-
-  img_dir = 'YOUR-IMAGE-DIRECTORY'
-  img_files = glob.glob(os.path.join(video_dir, '*.jpg'))
-
-  def redraw_fn(f, axes):
-    img_file = img_files[f]
-    img = imread(img_file)
-    if not redraw_fn.initialized:
-      redraw_fn.im = axes.imshow(img, animated=True)
-      redraw_fn.initialized = True
-    else:
-      redraw_fn.im.set_array(img)
-  redraw_fn.initialized = False
-
-  videofig(len(img_files), redraw_fn, play_fps=30)
-```
-
-### Example 3: Show images together with object bounding boxes
-```python
-  import os
-  import glob
-  from scipy.misc import imread
-  from matplotlib.pyplot import Rectangle
-  
-  video_dir = 'YOUR-VIDEO-DIRECTORY'
-
-  img_files = glob.glob(os.path.join(video_dir, '*.jpg'))
-  box_files = glob.glob(os.path.join(video_dir, '*.txt'))
-
-  def redraw_fn(f, axes):
-    img = imread(img_files[f])
-    box = bbread(box_files[f])  # Define your own bounding box reading utility
-    x, y, w, h = box
-    if not redraw_fn.initialized:
-      im = axes.imshow(img, animated=True)
-      bb = Rectangle((x, y), w, h,
-                     fill=False,  # remove background
-                     edgecolor="red")
-      axes.add_patch(bb)
-      redraw_fn.im = im
-      redraw_fn.bb = bb
-      redraw_fn.initialized = True
-    else:
-      redraw_fn.im.set_array(img)
-      redraw_fn.bb.set_xy((x, y))
-      redraw_fn.bb.set_width(w)
-      redraw_fn.bb.set_height(h)
-  redraw_fn.initialized = False
-
-  videofig(len(img_files), redraw_fn, play_fps=30)
-```
