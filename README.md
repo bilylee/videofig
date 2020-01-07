@@ -60,16 +60,6 @@ The keyboard shortcuts are:
 + Home/end -- go to first/last frame of video.
 
 ## Advanced Usage
-```python
-videofig(NUM_FRAMES, REDRAW_FUNC, FPS, BIG_SCROLL)
-```
-Also specifies the speed of the play function (frames-per-second) and
-the frame step of page up/page down (or empty for defaults).
-
-```python
-videofig(NUM_FRAMES, REDRAW_FUNC, FPS, BIG_SCROLL, KEY_FUNC)
-```
-Also calls KEY_FUNC(KEY) with any keys that weren't processed, so you
-can add more shortcut keys (or empty for none).
+Please see example scripts on how to achieve more advanced effects.
 
 
