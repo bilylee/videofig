@@ -14,6 +14,7 @@ Lightweight image sequence visualization utility based on matplotlib
 ![example1](./assets/example1_save.gif)
 
 ### Example 2: Show images together with object bounding boxes
+Note that the FPS is low in the gif since saving images takes time. Without saving images (by setting `SAVE_PLOTS = False` in example scripts), the FPS is about 35.
 ![example2](./assets/example2_save.gif)
 
 ### Example 3: Show multiple plots
