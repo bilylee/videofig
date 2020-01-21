@@ -9,6 +9,11 @@ Lightweight image sequence visualization utility based on matplotlib
 - save plots in a directory
 - support windows, linux, osx
 
+## Installation
+```bash
+pip install videofig
+```
+
 ## Examples
 ### Example 1: Plot a dynamic sine wave
 ![example1](./assets/example1_save.gif)
